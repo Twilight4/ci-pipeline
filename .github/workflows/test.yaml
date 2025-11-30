@@ -1,4 +1,4 @@
-Name: Run Tests
+name: Run Tests
 
 on:
   workflow_dispatch:
@@ -36,16 +36,3 @@ jobs:
         working-directory: services/node/api-node
         run: |
           task test
-
-
-
-
-      # 3. Setup caching      
-      - name: Prepare cache keys
-        id: cache-keys
-        run: |
-          echo "node_modules=$(sha256sum package-lock.json | cut -d' ' -f1)" >> $GITHUB_OUTPUT
-          echo "build=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
-          echo "tests=$(sha256sum package.json | cut -d' ' -f1)" >> $GITHUB_OUTPUT
-
-
