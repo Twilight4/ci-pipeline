@@ -1,0 +1,38 @@
+version: "3"
+
+tasks:
+  trigger-workflow:
+    desc: Trigger GitHub Actions workflow using act
+    cmds:
+      - |
+        act workflow_dispatch \
+        --container-architecture linux/amd64 \
+        -P ubuntu-24.04=catthehacker/ubuntu:act-22.04 \
+        --directory ../../../ \
+        -W .github/workflows/test.yaml
+
+
+
+  
+  build-container-image-multi-arch:
+    cmds:
+
+  install:
+    desc: install dependencies
+    cmds:
+      - npm install
+
+  install-ci:
+    desc: install/download package dependencies
+    cmds:
+      - npm ci
+
+  run:
+    desc: Start node api
+    cmds:
+      - DATABASE_URL={{.DATABASE_URL}} npm run dev
+
+  test:
+    desc: run tests
+    cmds:
+      - npm run test
