@@ -1,11 +1,26 @@
 name: Run Tests
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - services/**
+      - .github/workflows/test.yaml
   workflow_dispatch:
 
 jobs:
+  # Job testing applications
   test:
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          [
+            "services/node/api-node",
+            "services/go/api-golang",
+          ] 
     steps:
       # 1. Checkout code
       - name: Checkout Code
@@ -13,9 +28,15 @@ jobs:
         
       # 2. Install language toolchain
       - name: Set up Node.js environment
+        if: ${{ startsWith(matrix.service, 'services/node/*' ) }}
         uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
         with:
           node-version: "24"
+      - name: Set up Go environment
+        if: ${{ startsWith(matrix.service == 'services/go/*' ) }}
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+        with:
+          go-version: "1.23"
 
       # Install task
       - name: Install task
@@ -25,14 +46,14 @@ jobs:
           name: task
           version: v3.45.5
 
-      # Install node dependencies
-      - name: Install node deps
-        working-directory: services/node/api-node
+      # Install app dependencies
+      - name: Install app deps
+        working-directory: ${{ matrix.service }}
         run: |
           task install-ci
 
       # Run tests
       - name: Run tests
-        working-directory: services/node/api-node
+        working-directory: ${{ matrix.service }}
         run: |
           task test

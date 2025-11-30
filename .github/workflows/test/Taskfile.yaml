@@ -1,22 +1,6 @@
 version: "3"
 
 tasks:
-  trigger-workflow:
-    desc: Trigger GitHub Actions workflow using act
-    cmds:
-      - |
-        act workflow_dispatch \
-          --container-architecture linux/amd64 \
-          -P ubuntu/node-18-24.04_edge=ubuntu:18-24.04_edge \
-          --directory ../../../ \
-          -W .github/workflows/test.yaml
-
-
-
-  
-  build-container-image-multi-arch:
-    cmds:
-
   install:
     desc: install dependencies
     cmds:
