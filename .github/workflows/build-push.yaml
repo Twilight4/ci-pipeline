@@ -1,0 +1,101 @@
+name: Build and Push Container Images
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - services/**
+    tags:
+      - "**@[0-9]*.[0-9]*.[0-9]*" # service/foo/bar@X.Y.Z
+      
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Service to build"
+        type: choice
+        required: true
+        options:
+          - services/go/api-golang
+          - services/node/api-node
+          - services/other/api-golang-migrator
+      version:
+        description: "Version/tag to use (optional; defaults generating with git describe)"
+        required: false
+        type: string
+
+permissions:
+  actions: write # used to trigger deploy workflow
+  contents: read
+
+jobs:
+  build-push-container-image:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          [
+          "services/node/api-node",
+          "services/go/api-golang",
+          ] 
+    steps:
+      # Checkout code
+      - name: Checkout Code
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          fetch-depth: 0
+
+      # Install task
+      - name: Install task
+        uses: supplypike/setup-bin@1fafb085795af4a3f183502f3a9dffa8f7b83217 # v5.0.0
+        with:
+          uri: "https://github.com/go-task/task/releases/download/v3.45.5/task_linux_amd64.tar.gz"
+          name: task
+          version: v3.45.5
+
+      # Authenticate do Dockerhub
+      - name: Auth to Dockerhub
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Setup QEMU to build multi-architecture images
+      - name: Docker Setup QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
+
+      # Compute image tag
+      - name: Compute image tag
+        id: image-tag
+        working-directory: ${{ matrix.service }}
+        env:
+          ENVIRONMENT: production
+          INPUT_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || '' }}
+          SERVICE: ${{ matrix.service }}
+        shell: bash
+        run: |
+          if [[ -n "$INPUT_VERSION" ]]; then
+            version=$INPUT_VERSION
+            image_tag=$(task utils:manual-version-tag -- "$INPUT_VERSION")
+          elif [[ "$ENVIRONMENT" == "production" ]]; then
+            version=$(task utils:generate-version -- "$SERVICE")
+            image_tag=$(task utils:generate-version-tag -- "$SERVICE")
+          else
+            version=$(task utils:generate-extended-version -- "$SERVICE")
+            image_tag=$(task utils:generate-extended-version-tag -- "$SERVICE")
+          fi
+
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "image_tag=${image_tag}" >> "$GITHUB_OUTPUT"
+
+      # Build and push docker images
+      - name: Build and push Docker images
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: ${{ matrix.service }}
+          tags: ${{ steps.image-tag.outputs.image_tag }}
+          platforms: linux/amd64 # TODO: add multi arch "linux/amd64,linux/arm64"
+          # TODO: handle cache invalidation for version changes in package.json
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
