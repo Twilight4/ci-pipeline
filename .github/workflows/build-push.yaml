@@ -18,7 +18,6 @@ on:
         options:
           - services/go/api-golang
           - services/node/api-node
-          - services/other/api-golang-migrator
       version:
         description: "Version/tag to use (optional; defaults generating with git describe)"
         required: false

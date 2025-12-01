@@ -31,12 +31,16 @@ jobs:
         if: ${{ matrix.service == 'services/node/' }}
         uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
         with:
-          node-version: "24"
+          node-version-file: "services/node/api-node/package.json"
+          cache: npm
+          cache-dependency-path: "services/node/api-node/package-lock.json"
       - name: Set up Go environment
         if: ${{ matrix.service == 'services/go/' }}
         uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
         with:
-          go-version: "1.23"
+          go-version-file: "services/go/api-golang/go.mod"
+          cache: true
+          cache-dependency-path: "services/go/api-golang/go.sum"
 
       # Install task
       - name: Install task
