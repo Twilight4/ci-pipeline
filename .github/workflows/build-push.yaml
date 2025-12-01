@@ -96,6 +96,3 @@ jobs:
           context: ${{ matrix.service }}
           tags: ${{ steps.image-tag.outputs.image_tag }}
           platforms: linux/amd64 # TODO: add multi arch "linux/amd64,linux/arm64"
-          # TODO: handle cache invalidation for version changes in package.json
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
